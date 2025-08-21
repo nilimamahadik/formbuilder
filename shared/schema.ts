@@ -66,3 +66,18 @@ export const insertFormSubmissionSchema = createInsertSchema(formSubmissions).om
 
 export type InsertFormSubmission = z.infer<typeof insertFormSubmissionSchema>;
 export type FormSubmission = typeof formSubmissions.$inferSelect;
+
+export const users = pgTable("users", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  username: varchar("username").notNull().unique(),
+  email: varchar("email").notNull().unique(),
+  createdAt: text("created_at").default(sql`now()`),
+});
+
+export const insertUserSchema = createInsertSchema(users).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertUser = z.infer<typeof insertUserSchema>;
+export type User = typeof users.$inferSelect;

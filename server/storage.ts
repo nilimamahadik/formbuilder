@@ -1,4 +1,4 @@
-import { type Form, type InsertForm, type UpdateForm, type FormSubmission, type InsertFormSubmission } from "@shared/schema";
+import { type Form, type InsertForm, type UpdateForm, type FormSubmission, type InsertFormSubmission, type User, type InsertUser } from "@shared/schema";
 import { randomUUID } from "crypto";
 
 export interface IStorage {
@@ -42,7 +42,11 @@ export class MemStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = randomUUID();
-    const user: User = { ...insertUser, id };
+    const user: User = { 
+      ...insertUser, 
+      id, 
+      createdAt: new Date().toISOString() 
+    };
     this.users.set(id, user);
     return user;
   }
@@ -61,6 +65,7 @@ export class MemStorage implements IStorage {
     const form: Form = {
       ...insertForm,
       id,
+      description: insertForm.description || null,
       fields: JSON.stringify(insertForm.fields),
       createdAt: now,
       updatedAt: now,
