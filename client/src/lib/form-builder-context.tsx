@@ -12,6 +12,9 @@ interface FormBuilderState {
   showPreview: boolean;
   history: FormField[][];
   historyIndex: number;
+  isLoading: boolean;
+  isSaving: boolean;
+  currentFormId: string | null;
 }
 
 interface FormBuilderContextType extends FormBuilderState {
@@ -28,6 +31,11 @@ interface FormBuilderContextType extends FormBuilderState {
   canUndo: boolean;
   canRedo: boolean;
   exportFormAsJSON: () => void;
+  saveForm: () => Promise<void>;
+  loadForm: (formId: string) => Promise<void>;
+  isLoading: boolean;
+  isSaving: boolean;
+  currentFormId: string | null;
   getSelectedField: () => FormField | null;
 }
 
@@ -44,14 +52,17 @@ export function useFormBuilder() {
 export function FormBuilderProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<FormBuilderState>({
     form: {
-      title: "Contact Form",
-      description: "Please fill out this form to get in touch with us.",
+      title: "New Form",
+      description: "Please fill out this form.",
     },
     fields: [],
     selectedFieldId: null,
     showPreview: false,
     history: [[]],
     historyIndex: 0,
+    isLoading: false,
+    isSaving: false,
+    currentFormId: null,
   });
 
   const saveToHistory = useCallback((fields: FormField[]) => {
@@ -210,6 +221,78 @@ export function FormBuilderProvider({ children }: { children: React.ReactNode })
     URL.revokeObjectURL(url);
   }, [state.form, state.fields]);
 
+  const saveForm = useCallback(async () => {
+    setState(prev => ({ ...prev, isSaving: true }));
+    
+    try {
+      const formData = {
+        title: state.form.title,
+        description: state.form.description,
+        fields: state.fields,
+      };
+
+      const url = state.currentFormId 
+        ? `/api/forms/${state.currentFormId}` 
+        : '/api/forms';
+      const method = state.currentFormId ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save form');
+      }
+
+      const savedForm = await response.json();
+      setState(prev => ({ 
+        ...prev, 
+        currentFormId: savedForm.id,
+        isSaving: false 
+      }));
+    } catch (error) {
+      setState(prev => ({ ...prev, isSaving: false }));
+      throw error;
+    }
+  }, [state.form, state.fields, state.currentFormId]);
+
+  const loadForm = useCallback(async (formId: string) => {
+    setState(prev => ({ ...prev, isLoading: true }));
+    
+    try {
+      const response = await fetch(`/api/forms/${formId}`);
+      if (!response.ok) {
+        throw new Error('Failed to load form');
+      }
+
+      const form = await response.json();
+      const fields = typeof form.fields === 'string' 
+        ? JSON.parse(form.fields) 
+        : form.fields || [];
+
+      setState(prev => ({
+        ...prev,
+        form: {
+          title: form.title,
+          description: form.description || '',
+        },
+        fields,
+        currentFormId: formId,
+        history: [fields],
+        historyIndex: 0,
+        selectedFieldId: null,
+        isLoading: false,
+      }));
+    } catch (error) {
+      setState(prev => ({ ...prev, isLoading: false }));
+      throw error;
+    }
+  }, []);
+
   const getSelectedField = useCallback(() => {
     return state.fields.find(field => field.id === state.selectedFieldId) || null;
   }, [state.fields, state.selectedFieldId]);
@@ -229,6 +312,8 @@ export function FormBuilderProvider({ children }: { children: React.ReactNode })
     canUndo: state.historyIndex > 0,
     canRedo: state.historyIndex < state.history.length - 1,
     exportFormAsJSON,
+    saveForm,
+    loadForm,
     getSelectedField,
   };
 
