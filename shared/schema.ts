@@ -1,17 +1,7 @@
-import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, jsonb, boolean, integer } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import mongoose, { Schema, Document, Model } from "mongoose";
 
-export const forms = pgTable("forms", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  title: text("title").notNull(),
-  description: text("description"),
-  fields: jsonb("fields").notNull().default('[]'),
-  createdAt: text("created_at").default(sql`now()`),
-  updatedAt: text("updated_at").default(sql`now()`),
-});
-
+// Zod schemas for validation
 export const formFieldSchema = z.object({
   id: z.string(),
   type: z.enum(['text', 'number', 'email', 'textarea', 'select', 'radio', 'checkbox', 'date', 'time']),
@@ -37,47 +27,139 @@ export const formFieldSchema = z.object({
   }).optional(),
 });
 
-export const insertFormSchema = createInsertSchema(forms).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-}).extend({
+export const insertFormSchema = z.object({
+  title: z.string(),
+  description: z.string().optional(),
   fields: z.array(formFieldSchema),
 });
 
 export const updateFormSchema = insertFormSchema.partial();
 
+export const insertFormSubmissionSchema = z.object({
+  formId: z.string(),
+  data: z.record(z.any()),
+});
+
+export const insertUserSchema = z.object({
+  username: z.string(),
+  email: z.string().email(),
+});
+
+// TypeScript types
+export type FormField = z.infer<typeof formFieldSchema>;
 export type InsertForm = z.infer<typeof insertFormSchema>;
 export type UpdateForm = z.infer<typeof updateFormSchema>;
-export type Form = typeof forms.$inferSelect;
-export type FormField = z.infer<typeof formFieldSchema>;
-
-export const formSubmissions = pgTable("form_submissions", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  formId: varchar("form_id").notNull(),
-  data: jsonb("data").notNull(),
-  submittedAt: text("submitted_at").default(sql`now()`),
-});
-
-export const insertFormSubmissionSchema = createInsertSchema(formSubmissions).omit({
-  id: true,
-  submittedAt: true,
-});
-
 export type InsertFormSubmission = z.infer<typeof insertFormSubmissionSchema>;
-export type FormSubmission = typeof formSubmissions.$inferSelect;
-
-export const users = pgTable("users", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  username: varchar("username").notNull().unique(),
-  email: varchar("email").notNull().unique(),
-  createdAt: text("created_at").default(sql`now()`),
-});
-
-export const insertUserSchema = createInsertSchema(users).omit({
-  id: true,
-  createdAt: true,
-});
-
 export type InsertUser = z.infer<typeof insertUserSchema>;
-export type User = typeof users.$inferSelect;
+
+// MongoDB interfaces
+export interface IForm extends Document {
+  _id: mongoose.Types.ObjectId;
+  title: string;
+  description?: string;
+  fields: FormField[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface IFormSubmission extends Document {
+  _id: mongoose.Types.ObjectId;
+  formId: mongoose.Types.ObjectId;
+  data: Record<string, any>;
+  submittedAt: Date;
+}
+
+export interface IUser extends Document {
+  _id: mongoose.Types.ObjectId;
+  username: string;
+  email: string;
+  createdAt: Date;
+}
+
+// Mongoose schemas
+const FormFieldMongooseSchema = new Schema({
+  id: { type: String, required: true },
+  type: { 
+    type: String, 
+    required: true,
+    enum: ['text', 'number', 'email', 'textarea', 'select', 'radio', 'checkbox', 'date', 'time']
+  },
+  label: { type: String, required: true },
+  placeholder: String,
+  helpText: String,
+  required: { type: Boolean, default: false },
+  disabled: { type: Boolean, default: false },
+  hidden: { type: Boolean, default: false },
+  minLength: Number,
+  maxLength: Number,
+  size: { 
+    type: String, 
+    enum: ['small', 'medium', 'large'], 
+    default: 'medium' 
+  },
+  width: { 
+    type: String, 
+    enum: ['full', 'half', 'quarter'], 
+    default: 'full' 
+  },
+  cssClasses: String,
+  options: [{
+    label: { type: String, required: true },
+    value: { type: String, required: true },
+  }],
+  validation: {
+    pattern: String,
+    min: Number,
+    max: Number,
+  },
+});
+
+const FormMongooseSchema = new Schema({
+  title: { type: String, required: true },
+  description: String,
+  fields: [FormFieldMongooseSchema],
+}, {
+  timestamps: true
+});
+
+const FormSubmissionMongooseSchema = new Schema({
+  formId: { type: Schema.Types.ObjectId, ref: 'Form', required: true },
+  data: { type: Schema.Types.Mixed, required: true },
+  submittedAt: { type: Date, default: Date.now },
+});
+
+const UserMongooseSchema = new Schema({
+  username: { type: String, required: true, unique: true },
+  email: { type: String, required: true, unique: true },
+}, {
+  timestamps: true
+});
+
+// MongoDB models
+export const FormModel: Model<IForm> = mongoose.models.Form || mongoose.model<IForm>('Form', FormMongooseSchema);
+export const FormSubmissionModel: Model<IFormSubmission> = mongoose.models.FormSubmission || mongoose.model<IFormSubmission>('FormSubmission', FormSubmissionMongooseSchema);
+export const UserModel: Model<IUser> = mongoose.models.User || mongoose.model<IUser>('User', UserMongooseSchema);
+
+// Transformed types for API responses (to match previous interface)
+export interface Form {
+  id: string;
+  title: string;
+  description: string | null;
+  fields: string; // JSON stringified for compatibility
+  createdAt: string | null;
+  updatedAt: string | null;
+}
+
+export interface FormSubmission {
+  id: string;
+  formId: string;
+  data: string; // JSON stringified for compatibility
+  submittedAt: string | null;
+}
+
+export interface User {
+  id: string;
+  username: string;
+  email: string;
+  createdAt: string | null;
+}

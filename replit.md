@@ -1,6 +1,6 @@
 # Overview
 
-This is a form builder application that allows users to create and customize forms through a drag-and-drop interface. The application provides a visual form designer where users can add various field types (text inputs, checkboxes, dropdowns, etc.), configure their properties, and preview the final form. It's built as a full-stack application with a React frontend and Express backend, using PostgreSQL for data persistence.
+This is a form builder application that allows users to create and customize forms through a drag-and-drop interface. The application provides a visual form designer where users can add various field types (text inputs, checkboxes, dropdowns, etc.), configure their properties, and preview the final form. It's built as a full-stack application with a React frontend and Express backend, using MongoDB for data persistence.
 
 # User Preferences
 
@@ -28,7 +28,7 @@ The main components are organized into:
 The server is built with Express.js and TypeScript, following a RESTful API design:
 
 - **Express.js** handles HTTP requests and middleware
-- **Drizzle ORM** with PostgreSQL for database operations
+- **Mongoose** with MongoDB for database operations
 - **Zod** for request/response validation and type safety
 - **Memory storage fallback** for development/testing without database
 
@@ -38,9 +38,9 @@ The API provides endpoints for:
 - User management (placeholder implementation)
 
 ## Data Storage
-- **PostgreSQL** as the primary database with Neon serverless hosting
-- **Drizzle ORM** for type-safe database queries and migrations
-- **JSON fields** for storing dynamic form field configurations
+- **MongoDB** as the primary database (supports local and cloud deployment)
+- **Mongoose** for schema definition and database operations
+- **Flexible document structure** for storing dynamic form field configurations
 - **Memory storage** as a fallback implementation for development
 
 ## Form Field Schema
@@ -60,10 +60,9 @@ The application uses a flexible schema for form fields that supports:
 # External Dependencies
 
 ## Database & ORM
-- **@neondatabase/serverless** - Serverless PostgreSQL database hosting
-- **drizzle-orm** - Type-safe ORM for database operations  
-- **drizzle-kit** - Database migrations and schema management
-- **connect-pg-simple** - PostgreSQL session store for Express
+- **mongoose** - MongoDB object modeling for Node.js
+- **@types/mongoose** - TypeScript definitions for Mongoose
+- Supports both local MongoDB instances and cloud services like MongoDB Atlas
 
 ## Frontend UI & State
 - **@radix-ui** components - Headless UI primitives for accessibility
@@ -85,6 +84,5 @@ The application uses a flexible schema for form fields that supports:
 
 ## Validation & Utilities
 - **zod** - Schema validation for forms and API
-- **drizzle-zod** - Integration between Drizzle ORM and Zod
 - **date-fns** - Date manipulation utilities
-- **nanoid** - Unique ID generation
+- MongoDB ObjectIds for unique document identification
