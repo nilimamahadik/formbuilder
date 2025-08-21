@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 
 export function PropertiesPanel() {
   const [collapsed, setCollapsed] = useState(false);
-  const { getSelectedField, updateField, selectedFieldId } = useFormBuilder();
+  const { getSelectedField, updateField, selectedFieldId, form, setForm } = useFormBuilder();
   
   const selectedField = getSelectedField();
 
@@ -49,7 +49,7 @@ export function PropertiesPanel() {
       {/* Header */}
       <div className="p-4 border-b border-gray-200">
         <div className="flex items-center justify-between">
-          <h2 className="font-semibold text-gray-900">Field Properties</h2>
+          <h2 className="font-semibold text-gray-900">{selectedField ? 'Field Properties' : 'Form Properties'}</h2>
           <Button
             variant="ghost"
             size="sm"
@@ -64,10 +64,42 @@ export function PropertiesPanel() {
       {/* Content */}
       <div className="flex-1 overflow-y-auto">
         {!selectedField ? (
-          <div className="p-6 text-center text-gray-500">
-            <MousePointer className="w-12 h-12 mx-auto mb-3 text-gray-400" />
-            <p className="font-medium">No field selected</p>
-            <p className="text-sm">Click on a form field to edit its properties</p>
+          <div className="p-4 space-y-6">
+            {/* Form Settings */}
+            <div>
+              <h3 className="text-sm font-medium text-gray-900 mb-3">Form Settings</h3>
+              <div className="space-y-4">
+                <div>
+                  <Label className="text-sm font-medium text-gray-700 mb-1">Form Title</Label>
+                  <Input
+                    value={form.title}
+                    onChange={(e) => setForm({ ...form, title: e.target.value })}
+                    placeholder="Enter form title"
+                    className="text-sm"
+                  />
+                </div>
+                
+                <div>
+                  <Label className="text-sm font-medium text-gray-700 mb-1">Form Description</Label>
+                  <Textarea
+                    rows={3}
+                    value={form.description}
+                    onChange={(e) => setForm({ ...form, description: e.target.value })}
+                    placeholder="Enter form description"
+                    className="text-sm"
+                  />
+                </div>
+              </div>
+            </div>
+            
+            <div className="border-t border-gray-200 pt-4">
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <MousePointer className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                <p className="text-sm text-gray-600 text-center">
+                  Click on a form field to edit its properties
+                </p>
+              </div>
+            </div>
           </div>
         ) : (
           <div className="p-4 space-y-6">
